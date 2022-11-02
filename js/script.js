@@ -1,4 +1,4 @@
-// seleção de elementos
+// Seleção de elementos
 const todoForm = document.querySelector("#todo-form");
 const todoInput = document.querySelector("#todo-input");
 const todoList = document.querySelector("#todo-list");
@@ -6,131 +6,221 @@ const editForm = document.querySelector("#edit-form");
 const editInput = document.querySelector("#edit-input");
 const cancelEditBtn = document.querySelector("#cancel-edit-btn");
 
+const searchInput = document.querySelector("#search-input");
+const eraseBtn = document.querySelector("#erase-button");
+
 let oldInputValue;
 
-//funções
+// Funções
 
-//função para criar uma tarefa
-const saveTodo = (text) => {
+//criar uma tarefa
+const saveTodo = (text, done = 0, save = 1) => {
+  const todo = document.createElement("div");
+  todo.classList.add("todo");
 
-    const todo = document.createElement("div");
-    todo.classList.add("todo");
+  const todoTitle = document.createElement("h3");
+  todoTitle.innerText = text;
+  todo.appendChild(todoTitle);
 
-    const todoTitle = document.createElement("h3");
-    todoTitle.innerText = text;
-    todo.appendChild(todoTitle);
+  const doneBtn = document.createElement("button");
+  doneBtn.classList.add("finish-todo");
+  doneBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
+  todo.appendChild(doneBtn);
 
-    const doneBtn = document.createElement("button");
-    doneBtn.classList.add("finish-todo");
-    doneBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
-    todo.appendChild(doneBtn);
+  const editBtn = document.createElement("button");
+  editBtn.classList.add("edit-todo");
+  editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
+  todo.appendChild(editBtn);
 
-    const editBtn = document.createElement("button");
-    editBtn.classList.add("edit-todo");
-    editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
-    todo.appendChild(editBtn);
+  const deleteBtn = document.createElement("button");
+  deleteBtn.classList.add("remove-todo");
+  deleteBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+  todo.appendChild(deleteBtn);
 
-    const deleteBtn = document.createElement("button");
-    deleteBtn.classList.add("remove-todo");
-    deleteBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-    todo.appendChild(deleteBtn);
+  // Utilizando dados da localStorage
+  if (done) {
+    todo.classList.add("done");
+  }
 
-//inserindo todo na lista geral
-todoList.appendChild(todo);
+  if (save) {
+    saveTodoLocalStorage({ text, done: 0 });
+  }
 
-//limpando campo apos escrever
-todoInput.value = "";
-todoInput.focus();
-
-
+  //inserindo todo na lista geral
+  todoList.appendChild(todo);
+  //limpando campo apos escrever
+  todoInput.value = "";
 };
 
-
 //limpando a tela para o user ter apenas a tela de "editar"
-const toggleForms = () =>{
-    editForm.classList.toggle("hide");
-    todoForm.classList.toggle("hide");
-    todoList.classList.toggle("hide");
+const toggleForms = () => {
+  editForm.classList.toggle("hide");
+  todoForm.classList.toggle("hide");
+  todoList.classList.toggle("hide");
 };
 
 //função para atualizar tarefa apos edicao
 const updateTodo = (text) => {
-    const todos = document.querySelectorAll(".todo");
+  const todos = document.querySelectorAll(".todo");
 
-    todos.forEach((todo) =>{
-        let todoTitle = todo.querySelector("h3");
+  todos.forEach((todo) => {
+    let todoTitle = todo.querySelector("h3");
 
-        if(todoTitle.innerText === oldInputValue){
-            todo.innerText = text;
-        }
-    });
-}
+    if (todoTitle.innerText === oldInputValue) {
+      todoTitle.innerText = text;
+
+      // Utilizando dados da localStorage
+      updateTodoLocalStorage(oldInputValue, text);
+    }
+  });
+};
+
+const getSearchedTodos = (search) => {
+  const todos = document.querySelectorAll(".todo");
+
+  todos.forEach((todo) => {
+    const todoTitle = todo.querySelector("h3").innerText.toLowerCase();
+
+    todo.style.display = "flex";
+
+    console.log(todoTitle);
+
+    if (!todoTitle.includes(search)) {
+      todo.style.display = "none";
+    }
+  });
+};
 
 
-//eventos
-
-todoForm.addEventListener("submit", (e) =>{
-    e.preventDefault();
+// Eventos
 
 //salvar tarefa
-    const inputValue = todoInput.value
-    if(inputValue){
-        saveTodo(inputValue)
-    }
+todoForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const inputValue = todoInput.value;
+
+  if (inputValue) {
+    saveTodo(inputValue);
+  }
 });
 
-//completar tarefa
-document.addEventListener("click", (e) =>{
-   
-    const targetEl = e.target;
-    const parentEl = targetEl.closest("div"); //selecionando elemento "pai" div mais proximo
-    let todoTitle;
+//completar e remover tarefa
 
-    if(parentEl && parentEl.querySelector("h3")){
-        todoTitle = parentEl.querySelector("h3").innerText;
+document.addEventListener("click", (e) => {
+  const targetEl = e.target;
+  const parentEl = targetEl.closest("div");
+  let todoTitle;
 
-    }
+  if (parentEl && parentEl.querySelector("h3")) {
+    todoTitle = parentEl.querySelector("h3").innerText;
+  }
 
-    if(targetEl.classList.contains("finish-todo")) {
-        parentEl.classList.toggle("done");
-    }
+  if (targetEl.classList.contains("finish-todo")) {
+    parentEl.classList.toggle("done");
 
-//remover tarefa
+    updateTodoStatusLocalStorage(todoTitle);
+  }
 
-    if(targetEl.classList.contains("remove-todo")){
-        parentEl.remove();
-    }
+  if (targetEl.classList.contains("remove-todo")) {
+    parentEl.remove();
 
-//editar tarefa
+    // Utilizando dados da localStorage
+    removeTodoLocalStorage(todoTitle);
+  }
 
-    if(targetEl.classList.contains("edit-todo")){
-        toggleForms();
+  if (targetEl.classList.contains("edit-todo")) {
+    toggleForms();
 
-    //mudar e mapear a tarefa em uma memoria temporaria
     editInput.value = todoTitle;
-    oldInput = todoTitle;
-
-    }
-
+    oldInputValue = todoTitle;
+  }
 });
 
-//trabalhando o botao de "cancelar" no menu de edicao
-cancelEditBtn.addEventListener("click", (e) =>{
-    e.preventDefault();
-    toggleForms();
+//botão cancelar na tela de edicao
+cancelEditBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  toggleForms();
 });
 
-//salvando a tarefa editada
+//editando tarefa
+
 editForm.addEventListener("submit", (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const editInputValue = editInput.value;
+  const editInputValue = editInput.value;
 
-    if(editInputValue){
-    //atualizar
-    updateTodo(editInputValue)
-    }
+  if (editInputValue) {
+    updateTodo(editInputValue);
+  }
 
-    toggleForms();
-
+  toggleForms();
 });
+
+//pesquisando tarefas
+searchInput.addEventListener("keyup", (e) => {
+  const search = e.target.value;
+
+  getSearchedTodos(search);
+});
+
+eraseBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+
+  searchInput.value = "";
+
+  searchInput.dispatchEvent(new Event("keyup"));
+});
+
+// Local Storage
+const getTodosLocalStorage = () => {
+  const todos = JSON.parse(localStorage.getItem("todos")) || [];
+
+  return todos;
+};
+
+const loadTodos = () => {
+  const todos = getTodosLocalStorage();
+
+  todos.forEach((todo) => {
+    saveTodo(todo.text, todo.done, 0);
+  });
+};
+
+const saveTodoLocalStorage = (todo) => {
+  const todos = getTodosLocalStorage();
+
+  todos.push(todo);
+
+  localStorage.setItem("todos", JSON.stringify(todos));
+};
+
+const removeTodoLocalStorage = (todoText) => {
+  const todos = getTodosLocalStorage();
+
+  const filteredTodos = todos.filter((todo) => todo.text != todoText);
+
+  localStorage.setItem("todos", JSON.stringify(filteredTodos));
+};
+
+const updateTodoStatusLocalStorage = (todoText) => {
+  const todos = getTodosLocalStorage();
+
+  todos.map((todo) =>
+    todo.text === todoText ? (todo.done = !todo.done) : null
+  );
+
+  localStorage.setItem("todos", JSON.stringify(todos));
+};
+
+const updateTodoLocalStorage = (todoOldText, todoNewText) => {
+  const todos = getTodosLocalStorage();
+
+  todos.map((todo) =>
+    todo.text === todoOldText ? (todo.text = todoNewText) : null
+  );
+
+  localStorage.setItem("todos", JSON.stringify(todos));
+};
+
+loadTodos();
