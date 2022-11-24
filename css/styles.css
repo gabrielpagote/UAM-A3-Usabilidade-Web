@@ -9,9 +9,9 @@
 }
 
 body{
-    background-image: url("../img/background-c.jpg");
-    background-position: center;
-    background-size: cover;
+    background-image: linear-gradient(180deg,#102f5e, #395169, #6f8ca8);
+    background-attachment: fixed;
+
 }
 
 button{
